@@ -1,0 +1,12 @@
+{
+  "name": "enter the assignment name here",
+  "version": "1.0.0",
+  "description": "",
+  "main": "../Client/GetImage.js",
+  "dependencies": {
+    "open": "^7.4.0",
+    "optimist": "^0.6.1"
+  },
+  "author": "enter your name here",
+  "license": "ISC"
+}
