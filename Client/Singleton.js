@@ -5,9 +5,7 @@ let sequenceNumber
 module.exports = {
     init: function() {
        // init function needs to be implemented here //
-        
-       //on init set an interval for increasing the timestamp
-       setInterval(()=> {
+        setInterval(()=> {
             if(timeStamp + 1 > 4294967296){
                 timeStamp = 0
             }

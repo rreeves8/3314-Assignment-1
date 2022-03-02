@@ -3,44 +3,57 @@ let fs = require("fs")
 // You may need to add some delectation here
 
 module.exports = {
-    init: function () { // feel free to add function parameters as needed
-        //
-        // enter your code here
-        //
-    },
-
     //--------------------------
     //getpacket: returns the entire packet
     //--------------------------
-    getPacket: function (data) {
-        // enter your code here
-        let packet = new Array()
-        let fileName = data.slice(4, 16).toString()
+    getPacket: async function (data, singleton) {
+        let path = "images/" + data["Image file name"] + "." + imgType(data["Image Extenstion"])//build the path string from the data
 
-        console.log(fileName)
+        let doesExist = fs.existsSync(path)//check if the path is right
+
+        let imgData = {
+            responseType: (doesExist) ? (1) : (2), //return a value based on the correct input or not
+            bytes: (doesExist) ? (await getImageEnc(path)) : (0) //using async get the image buffer
+        }
+
+        let resPacket = Buffer.alloc(96) //alloc a buffer for the packet data
+
+        resPacket.writeInt32BE(7, 0, 4)
+        resPacket.writeInt32BE(imgData.responseType, 4, 8)
+        resPacket.writeInt32BE(singleton.getSequenceNumber(), 12, 20)
+        resPacket.writeInt32BE(singleton.getTimestamp(), 32, 32)
+        resPacket.writeInt32BE(imgData.bytes.length, 64, 32)
 
 
-        return "this should be a correct packet";
+        return Buffer.concat([resPacket, imgData.bytes]);//return both buffers attatched to eachother
     }
 };
 
-//// Some usefull methods ////
-// Feel free to use them, but DON NOT change or add any code in these methods.
+//or getting the image buffer
+const getImageEnc = async (fileName) => {
+    let data = await fs.promises.readFile(fileName) //wait for the file to open 
 
-// Store integer value into specific bit poistion the packet
-function storeBitPacket(packet, value, offset, length) {
-    // let us get the actual byte position of the offset
-    let lastBitPosition = offset + length - 1;
-    let number = value.toString(2);
-    let j = number.length - 1;
-    for (var i = 0; i < number.length; i++) {
-        let bytePosition = Math.floor(lastBitPosition / 8);
-        let bitPosition = 7 - (lastBitPosition % 8);
-        if (number.charAt(j--) == "0") {
-            packet[bytePosition] &= ~(1 << bitPosition);
-        } else {
-            packet[bytePosition] |= 1 << bitPosition;
-        }
-        lastBitPosition--;
+    return Buffer.from(data); //return a buffer of the data
+}
+
+//for getting the image extension
+const imgType = (val) => {
+    switch (val) {
+        case (1):
+            return 'bmp'
+        case (2):
+            return 'jpeg'
+
+        case (3):
+            return "gif"
+
+        case (4):
+            return 'png'
+
+        case (5):
+            return 'tiff'
+
+        default:
+            return 'none'
     }
 }

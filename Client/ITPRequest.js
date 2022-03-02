@@ -1,86 +1,44 @@
-// You may need to add some delectation here
-
 module.exports = {
-    init: function () {
-        // feel free to add function parameters as needed
-        //
-        // enter your code here
-        //
-    },
-
     //--------------------------
     //getBytePacket: returns the entire packet in bytes
     //--------------------------
-    getBytePacket: function (imgData, versionNo) {
-        let imgName = imgData.split(".")[0]
-        let imgExt = imgData.split(".")[1]
+    getBytePacket: function (imgData, versionNo, timeStamp) {
+        let imgName = imgData.split(".")[0] //get image name
+        let imgExt = imgData.split(".")[1] //get image extenstion
 
-        let reqPacket = new BufferArray()
+        var imgBuffer = Buffer.from(imgName, 'utf16le') //get the byte buffer from the image name string
 
-        var enc = new TextEncoder()
-        let encoded = enc.encode(imgName)
+        let reqPacket = Buffer.alloc(67 + 28) //allocate the right amount of bytes for the data buffer
 
-        storeBitPacket(reqPacket, versionNo, 0, 4) //version number
-        storeBitPacket(reqPacket, 0, 24, 8) //request type, query
-        storeBitPacket(reqPacket, imgType(imgExt), 32, 4)
-        storeBitPacket(reqPacket, encoded.byteLength, 36, 28)
-        storeBitPacket(reqPacket, encoded, 36 + 28, encoded.byteOffset)
-
-        return reqPacket
+        reqPacket.writeIntBE(versionNo, 0, 4) //version number
+        reqPacket.writeInt32BE(0, 23, 8) //request type, query
+        reqPacket.writeInt32BE(timeStamp, 31, 32)
+        reqPacket.writeInt32BE(imgType(imgExt), 63, 4)
+        reqPacket.writeInt32BE(imgBuffer.length, 67, 28)
+        
+        return Buffer.concat([reqPacket,imgBuffer]) //combine the image name buffer and the data buffer
     },
 };
 
-//// Some usefull methods ////
-// Feel free to use them, but DON NOT change or add any code in these methods.
-
+//switch for getting image type
 const imgType = (val) => {
-    return (
-        (val === 'bmp') ? (1) : (
-            (val === 'jpeg') ? (2) : (
-                (val === 'gif') ? (3) : (
-                    (val === 'png') ? (4) : (
-                        (val === 'tiff') ? (5) : (15)
-                    )
-                )
-            )
-        )
-    )
-}
+    switch(val){
+        case('bmp'):
+            return 1
 
-// Convert a given string to byte array
-function stringToBytes(str) {
-    var ch,
-        st,
-        re = [];
-    for (var i = 0; i < str.length; i++) {
-        ch = str.charCodeAt(i); // get char
-        st = []; // set up "stack"
-        do {
-            st.push(ch & 0xff); // push byte to stack
-            ch = ch >> 8; // shift value down by 1 byte
-        } while (ch);
-        // add stack contents to result
-        // done because chars have "wrong" endianness
-        re = re.concat(st.reverse());
-    }
-    // return an array of bytes
-    return re;
-}
+        case('jpeg'):
+            return 2
+    
+        case('gif'):
+            return 3
 
-// Store integer value into specific bit poistion the packet
-function storeBitPacket(packet, value, offset, length) {
-    // let us get the actual byte position of the offset
-    let lastBitPosition = offset + length - 1;
-    let number = value.toString(2);
-    let j = number.length - 1;
-    for (var i = 0; i < number.length; i++) {
-        let bytePosition = Math.floor(lastBitPosition / 8);
-        let bitPosition = 7 - (lastBitPosition % 8);
-        if (number.charAt(j--) == "0") {
-            packet[bytePosition] &= ~(1 << bitPosition);
-        } else {
-            packet[bytePosition] |= 1 << bitPosition;
-        }
-        lastBitPosition--;
+        case('png'):
+            return 4
+
+        case('tiff'):
+            return 5
+
+        default:
+            return 15
     }
 }
